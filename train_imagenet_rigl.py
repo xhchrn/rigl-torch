@@ -61,6 +61,8 @@ parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
                     help='number of total epochs to run')
+parser.add_argument('--train-step-multiplier', default=1.0, type=float,
+                    help='Multiplier for the total number of epochs')
 parser.add_argument('--T-end-percent', default=0.8, type=float, help='percentage of total samples to stop rigl topo updates')
 parser.add_argument('--T-end-epochs', default=None, type=float, help='number of epochs to simulate (only used for tuning)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
@@ -298,6 +300,9 @@ def main_worker(gpu, ngpus_per_node, args):
         validate(val_loader, model, criterion, args)
         return
 
+    # apply train step multiplier
+    apply_train_step_multiplier(args)
+
     pruner = None
     if args.dense_allocation is not None:
         if args.T_end_epochs is None:
@@ -491,6 +496,15 @@ class ProgressMeter(object):
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
 
 
+def apply_train_step_multiplier(args):
+    args.epochs = int(args.epochs * args.train_step_multiplier)
+    args.lr_scaling_stop = int(args.lr_scaling_stop * args.train_step_multiplier)
+    if args.T_end_epochs is not None:
+        args.T_end_epochs = int(args.T_end_epochs * args.train_step_multiplier)
+    if args.lr_warmup_end is not None:
+        args.lr_warmup_end = int(args.lr_warmup_end * args.train_step_multiplier)
+
+
 def adjust_learning_rate(optimizer, epoch, args):
     if args.lr_scaling_stop is not None and epoch > args.lr_scaling_stop:
         return # stop scaling learning rate
@@ -501,7 +515,7 @@ def adjust_learning_rate(optimizer, epoch, args):
         lr = args.lr * m
     else:
         """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-        lr = args.lr * (0.1 ** (epoch // 30))
+        lr = args.lr * (0.1 ** (epoch // int(30 * args.train_step_multiplier)))
         
     print('using LR:', lr)
     for param_group in optimizer.param_groups:
