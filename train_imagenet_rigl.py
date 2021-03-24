@@ -106,8 +106,8 @@ parser.add_argument('--world-size', default=default_world_size, type=int,
                     help='number of nodes for distributed training')
 parser.add_argument('--rank', default=-1, type=int,
                     help='node rank for distributed training')
-# parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
-                    # help='url used to set up distributed training')
+parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
+                    help='url used to set up distributed training')
 parser.add_argument('--dist-backend', default='nccl', type=str,
                     help='distributed backend')
 parser.add_argument('--seed', default=None, type=int,
@@ -175,10 +175,10 @@ def main_worker(gpu, ngpus_per_node, args):
         print("Use GPU: {} for training".format(args.gpu))
 
     if args.distributed:
-        # if args.dist_url == "env://" and args.rank == -1:
-        args.rank = args.hosts.index(args.current_host)
-        print('DISTRIBUTED RANK: %i' % args.rank)
-#             args.rank = int(os.environ["RANK"])
+        if args.dist_url == "env://" and args.rank == -1:
+        # args.rank = args.hosts.index(args.current_host)
+        # print('DISTRIBUTED RANK: %i' % args.rank)
+            args.rank = int(os.environ["RANK"])
 
         if args.multiprocessing_distributed:
             # For multiprocessing distributed training, rank needs to be the
